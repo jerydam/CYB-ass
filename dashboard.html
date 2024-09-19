@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="dashboard-wrapper">
+        <div id="dashboard" style="display: none;">
+            <h2>Welcome to Your Dashboard</h2>
+            <p>Hello, <span id="dashboardUsername"></span></p>
+            <p>Email: <span id="dashboardEmail"></span></p>
+            <p>Date of Birth: <span id="dashboardDob"></span></p>
+            <p>Gender: <span id="dashboardGender"></span></p>
+            <button id="logoutButton">Logout</button>
+        </div>
+        <div id="loginSignupContainer" style="display: none;">
+            <a href="index.html">Go to Login</a> or <a href="signup.html">Sign Up</a>
+        </div>
+    </div>
+
+    <script>
+        // Display Dashboard Functionality
+        function displayDashboard(user) {
+            document.getElementById("dashboard").style.display = "block";
+            document.getElementById("dashboardUsername").innerText = user.firstname + ' ' + user.lastname;
+            document.getElementById("dashboardEmail").innerText = user.email;
+            document.getElementById("dashboardDob").innerText = user.dob;
+            document.getElementById("dashboardGender").innerText = user.gender;
+
+            // Hide login and signup forms
+            document.getElementById("loginSignupContainer").style.display = "none";
+        }
+
+        // Logout Functionality
+        document.getElementById("logoutButton").addEventListener("click", function () {
+            sessionStorage.removeItem("loggedInUser");
+            document.getElementById("dashboard").style.display = "none";
+            document.getElementById("loginSignupContainer").style.display = "block";
+        });
+
+        // Check if a user is already logged in
+        window.onload = function () {
+            const loggedInUser = sessionStorage.getItem("loggedInUser");
+            if (loggedInUser) {
+                const user = JSON.parse(localStorage.getItem(loggedInUser));
+                if (user) {
+                    displayDashboard(user);
+                }
+            } else {
+                document.getElementById("loginSignupContainer").style.display = "block";
+            }
+        };
+    </script>
+</body>
+</html>

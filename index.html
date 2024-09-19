@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="favico.jpg" type="image/x-icon">
+    <title>Facebook - login or sign up</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="flex">
+        <p style="color: #166fe5;">Facebook <br><br>
+            <span style="color: #2f3032;">Facebook helps you connect and share with the people in your life.</span>
+        </p>
+    
+        <div class="login-container">
+            <h1>Login</h1>
+            <form id="loginForm">
+                <input type="text" name="email" id="email" placeholder="Email or phone number" required>
+                <input type="password" name="password" id="password" placeholder="Password" required>
+                <button class="button" type="submit">Log In</button>
+                <a href="">Forget Password</a>
+                <button id="sign"><a href="signup.html">Create new account</a></button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById("loginForm").addEventListener("submit", function (e) {
+            e.preventDefault();
+
+            const email = document.getElementById("email").value;
+            const password = document.getElementById("password").value;
+
+            // Retrieve user data from localStorage
+            const user = JSON.parse(localStorage.getItem(email));
+
+            if (user && user.password === password) {
+                // Save logged-in user to session storage
+                sessionStorage.setItem("loggedInUser", email);
+                displayDashboard(user);
+            } else {
+                alert("Invalid email or password.");
+            }
+            this.reset();
+        });
+
+        function displayDashboard(user) {
+            alert(`Welcome, ${user.firstname} ${user.lastname}!`);
+            // Redirect to dashboard.html
+            window.location.href = "dashboard.html";
+        }
+
+        function logout() {
+            sessionStorage.removeItem("loggedInUser");
+            window.location.reload();
+        }
+    </script>
+</body>
+</html>

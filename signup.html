@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Up</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="signup-wrapper">
+    <div class="signup-container">
+      <h2>Create a New Account</h2>
+      <p>It's quick and easy.</p>
+      <hr>
+      <form id="signupForm">
+        <div class="form-row">
+          <div class="form-group">
+            <input type="text" id="signupFirstname" placeholder="First Name" required>
+          </div>
+          <div class="form-group">
+            <input type="text" id="signupLastname" placeholder="Last Name" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <input type="text" id="signupEmail" placeholder="Email or Phone Number" required>
+        </div>
+        <div class="form-group">
+          <input type="date" id="signupDob" required>
+        </div>
+        <div class="form-group">
+          <select id="signupGender" required>
+            <option value="" disabled selected>Select your gender</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <input type="password" id="signupPassword" placeholder="New Password" required>
+        </div>
+        <button type="submit">Sign Up</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById("signupForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+
+      const user = {
+        firstname: document.getElementById("signupFirstname").value,
+        lastname: document.getElementById("signupLastname").value,
+        email: document.getElementById("signupEmail").value,
+        dob: document.getElementById("signupDob").value,
+        gender: document.getElementById("signupGender").value,
+        password: document.getElementById("signupPassword").value
+      };
+
+      // Save user to localStorage
+      localStorage.setItem(user.email, JSON.stringify(user));
+
+      alert("Sign up successful! You can now log in.");
+      this.reset();
+    });
+  </script>
+</body>
+</html>

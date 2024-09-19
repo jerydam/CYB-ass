@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Camera Functionality</title>
+  <style>
+    video, canvas {
+      width: 100%;
+      max-width: 600px;
+      height: auto;
+    }
+    button {
+      margin: 5px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Camera Functionality</h1>
+  
+  <!-- Video stream element -->
+  <video id="video" autoplay></video>
+  
+  <!-- Buttons for taking pictures and switching cameras -->
+  <div>
+    <button id="start-recording">Start Recording</button>
+    <button id="stop-recording" disabled>Stop Recording</button>
+    <button id="take-photo">Take Photo</button>
+    <button id="switch-camera">Switch Camera</button>
+  </div>
+  
+  <!-- Placeholder for the captured image -->
+  <canvas id="canvas" style="display:none;"></canvas>
+  <img id="photo" alt="Captured Photo" style="display:none;"/>
+  
+  <!-- Placeholder for video recording -->
+  <video id="recorded-video" controls style="display:none;"></video>
+
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const photo = document.getElementById('photo');
+    const startRecordingBtn = document.getElementById('start-recording');
+    const stopRecordingBtn = document.getElementById('stop-recording');
+    const switchCameraBtn = document.getElementById('switch-camera');
+    const recordedVideo = document.getElementById('recorded-video');
+    
+    let mediaStream = null;
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    let currentFacingMode = 'user'; // 'user' for front camera, 'environment' for rear camera
+    
+    // Access the camera
+    async function startCamera() {
+      try {
+        // Request camera access
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: currentFacingMode },
+          audio: true // Enable audio for video recording
+        });
+        
+        // Check if mediaStream is valid
+        if (mediaStream) {
+          video.srcObject = mediaStream;
+        } else {
+          throw new Error("Failed to initialize media stream.");
+        }
+      } catch (error) {
+        console.error('Error accessing the camera', error);
+        alert('Error accessing the camera: ' + error.message);
+      }
+    }
+    
+    // Start recording
+    startRecordingBtn.addEventListener('click', () => {
+      if (!mediaStream) {
+        alert('No media stream available for recording');
+        return;
+      }
+      
+      recordedChunks = [];
+      
+      try {
+        mediaRecorder = new MediaRecorder(mediaStream);
+      } catch (error) {
+        console.error('Error creating MediaRecorder:', error);
+        alert('Error creating MediaRecorder: ' + error.message);
+        return;
+      }
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          recordedChunks.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(recordedChunks, { type: 'video/webm' });
+        const videoURL = URL.createObjectURL(blob);
+        recordedVideo.src = videoURL;
+        recordedVideo.style.display = 'block';
+      };
+
+      mediaRecorder.start();
+      startRecordingBtn.disabled = true;
+      stopRecordingBtn.disabled = false;
+    });
+    
+    // Stop recording
+    stopRecordingBtn.addEventListener('click', () => {
+      if (mediaRecorder) {
+        mediaRecorder.stop();
+      }
+      startRecordingBtn.disabled = false;
+      stopRecordingBtn.disabled = true;
+    });
+    
+    // Take a picture
+    document.getElementById('take-photo').addEventListener('click', () => {
+      if (mediaStream) {
+        const context = canvas.getContext('2d');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        // Convert canvas to image
+        const dataURL = canvas.toDataURL('image/png');
+        photo.src = dataURL;
+        photo.style.display = 'block';
+      } else {
+        alert('No video stream available to capture photo');
+      }
+    });
+    
+    // Switch between front and rear camera
+    switchCameraBtn.addEventListener('click', async () => {
+      currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+      
+      // Stop the current media stream before switching
+      if (mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
+      }
+      
+      await startCamera(); // Restart the camera with the new facing mode
+    });
+    
+    // Start the camera on page load
+    startCamera();
+  </script>
+
+</body>
+</html>
