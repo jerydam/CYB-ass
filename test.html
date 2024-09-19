@@ -19,13 +19,13 @@
 
   <h1>Camera Functionality</h1>
   
-  <video id="video" autoplay></video>
+  <video id="video" autoplay style="display:none;"></video>
   
   <div>
     <button id="start-recording">Start Recording</button>
     <button id="stop-recording" disabled>Stop Recording</button>
-    <button id="take-photo">Take Photo</button>
-    <button id="switch-camera">Switch Camera</button>
+    <button id="take-photo" disabled>Take Photo</button>
+    <button id="switch-camera" disabled>Switch Camera</button>
   </div>
   
   <canvas id="canvas" style="display:none;"></canvas>
@@ -38,6 +38,7 @@
     const photo = document.getElementById('photo');
     const startRecordingBtn = document.getElementById('start-recording');
     const stopRecordingBtn = document.getElementById('stop-recording');
+    const takePhotoBtn = document.getElementById('take-photo');
     const switchCameraBtn = document.getElementById('switch-camera');
     const recordedVideo = document.getElementById('recorded-video');
     
@@ -45,7 +46,51 @@
     let mediaRecorder = null;
     let recordedChunks = [];
     let currentFacingMode = 'user'; // 'user' for front camera, 'environment' for rear camera
-    const NFT_STORAGE_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiJmZGNiMzgxZS1iNDYxLTQ0ODAtYWQ5Zi0wZTAxN2QwMjgwMWYiLCJlbWFpbCI6ImplcnlkYW4xNDhAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInBpbl9wb2xpY3kiOnsicmVnaW9ucyI6W3siaWQiOiJGUkExIiwiZGVzaXJlZFJlcGxpY2F0aW9uQ291bnQiOjF9LHsiaWQiOiJOWUMxIiwiZGVzaXJlZFJlcGxpY2F0aW9uQ291bnQiOjF9XSwidmVyc2lvbiI6MX0sIm1mYV9lbmFibGVkIjpmYWxzZSwic3RhdHVzIjoiQUNUSVZFIn0sImF1dGhlbnRpY2F0aW9uVHlwZSI6InNjb3BlZEtleSIsInNjb3BlZEtleUtleSI6IjYyOTg0ZTY1NTY4ZGUxYjk5MDNiIiwic2NvcGVkS2V5U2VjcmV0IjoiMjdlMjg1YTA0MmVlOGMyMTQ5MzQ1ZjA1ZjhlYTYyMzRkM2I2MWZiYjU3M2ZmNzIxMzU1OWMwNGIxOGE3NzJhYSIsImlhdCI6MTcyNDE2MzU3Mn0.2PAyS8Y_NX17idFPsk6-_b0kg5vGfr0TOlqla49iNKA'; // Replace with your Pinata API JWT Token
+    
+    const NFT_STORAGE_TOKEN = 'YOUR_PINATA_JWT_TOKEN'; // Replace with your Pinata API JWT Token
+    
+    // Start the camera and begin recording
+    startRecordingBtn.addEventListener('click', async () => {
+      await startCamera(); // Start camera when recording begins
+
+      recordedChunks = [];
+      mediaRecorder = new MediaRecorder(mediaStream);
+      mediaRecorder.ondataavailable = event => recordedChunks.push(event.data);
+      mediaRecorder.onstop = async () => {
+        const blob = new Blob(recordedChunks, { type: 'video/webm' });
+
+        // Save video locally
+        saveToDevice(blob, 'video.webm');
+
+        // Upload video to IPFS
+        await uploadToIPFS(blob, 'video.webm');
+
+        // Stop the camera when recording stops
+        stopCamera();
+
+        // Hide recorded video (do not show it on the webpage)
+        recordedVideo.style.display = 'none';
+      };
+
+      mediaRecorder.start();
+      startRecordingBtn.disabled = true;
+      stopRecordingBtn.disabled = false;
+      takePhotoBtn.disabled = false;
+      switchCameraBtn.disabled = false;
+      video.style.display = 'block';
+    });
+    
+    // Stop the recording and the camera
+    stopRecordingBtn.addEventListener('click', () => {
+      if (mediaRecorder) {
+        mediaRecorder.stop();
+      }
+      startRecordingBtn.disabled = false;
+      stopRecordingBtn.disabled = true;
+      takePhotoBtn.disabled = true;
+      switchCameraBtn.disabled = true;
+      video.style.display = 'none';
+    });
     
     // Access the camera
     async function startCamera() {
@@ -61,34 +106,17 @@
       }
     }
     
-    // Start recording
-    startRecordingBtn.addEventListener('click', () => {
-      recordedChunks = [];
-      mediaRecorder = new MediaRecorder(mediaStream);
-      mediaRecorder.ondataavailable = event => recordedChunks.push(event.data);
-      mediaRecorder.onstop = async () => {
-        const blob = new Blob(recordedChunks, { type: 'video/webm' });
-        const videoURL = URL.createObjectURL(blob);
-        recordedVideo.src = videoURL;
-        recordedVideo.style.display = 'block';
-        
-        // Upload video to IPFS
-        await uploadToIPFS(blob, 'video.webm');
-      };
-      mediaRecorder.start();
-      startRecordingBtn.disabled = true;
-      stopRecordingBtn.disabled = false;
-    });
-    
-    // Stop recording
-    stopRecordingBtn.addEventListener('click', () => {
-      mediaRecorder.stop();
-      startRecordingBtn.disabled = false;
-      stopRecordingBtn.disabled = true;
-    });
-    
+    // Stop the camera by stopping all media tracks and resetting the video element
+    function stopCamera() {
+      if (mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
+        video.srcObject = null;  // Clear the video feed
+        mediaStream = null;
+      }
+    }
+
     // Take a picture
-    document.getElementById('take-photo').addEventListener('click', async () => {
+    takePhotoBtn.addEventListener('click', async () => {
       const context = canvas.getContext('2d');
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
@@ -96,8 +124,6 @@
       
       // Convert canvas to image
       const dataURL = canvas.toDataURL('image/png');
-      photo.src = dataURL;
-      photo.style.display = 'block';
 
       // Convert dataURL to Blob
       const blob = await fetch(dataURL).then(res => res.blob());
@@ -106,20 +132,18 @@
       await uploadToIPFS(blob, 'image.png');
       
       // Save image locally
-      saveToDevice(dataURL, 'photo.png');
+      saveToDevice(blob, 'photo.png');
+
+      // Hide captured photo (do not show it on the webpage)
+      photo.style.display = 'none';
     });
     
     // Switch between front and rear camera
     switchCameraBtn.addEventListener('click', async () => {
       currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
-      if (mediaStream) {
-        mediaStream.getTracks().forEach(track => track.stop());
-      }
+      stopCamera();
       await startCamera();
     });
-    
-    // Start the camera on page load
-    startCamera();
 
     // Upload to IPFS using Pinata
     async function uploadToIPFS(fileBlob, fileName) {
@@ -145,13 +169,15 @@
     }
 
     // Save image or video locally
-    function saveToDevice(dataURL, fileName) {
+    function saveToDevice(blob, fileName) {
+      const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = dataURL;
+      a.href = url;
       a.download = fileName;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     }
   </script>
 
