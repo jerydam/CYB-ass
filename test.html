@@ -32,6 +32,7 @@
   <img id="photo" alt="Captured Photo" style="display:none;"/>
   <video id="recorded-video" controls style="display:none;" muted></video>
 
+
   <script>
     const video = document.getElementById('video');
     const canvas = document.getElementById('canvas');
@@ -45,8 +46,9 @@
     let mediaStream = null;
     let mediaRecorder = null;
     let recordedChunks = [];
-    let currentFacingMode = 'user'; // 'user' for front camera, 'environment' for rear camera
-    
+    let currentFacingMode = 'environment'; // Default to rear camera
+    let isRecording = false;
+
     const NFT_STORAGE_TOKEN = 'YOUR_PINATA_JWT_TOKEN'; // Replace with your Pinata API JWT Token
     
     // Start the camera and begin recording
@@ -73,6 +75,7 @@
       };
 
       mediaRecorder.start();
+      isRecording = true;
       startRecordingBtn.disabled = true;
       stopRecordingBtn.disabled = false;
       takePhotoBtn.disabled = false;
@@ -84,6 +87,7 @@
     stopRecordingBtn.addEventListener('click', () => {
       if (mediaRecorder) {
         mediaRecorder.stop();
+        isRecording = false;
       }
       startRecordingBtn.disabled = false;
       stopRecordingBtn.disabled = true;
@@ -94,17 +98,19 @@
     
     // Access the camera
     async function startCamera() {
-      try {
-        mediaStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: currentFacingMode },
-          audio: true
-        });
-        video.srcObject = mediaStream;
-      } catch (error) {
-        console.error('Error accessing the camera', error);
-        alert('Error accessing the camera: ' + error.message);
-      }
-    }
+  try {
+    mediaStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: currentFacingMode },
+      audio: true  // Keep audio capture on, but mute video output
+    });
+    video.srcObject = mediaStream;
+    video.muted = true;  // Mute video element to prevent feedback
+  } catch (error) {
+    console.error('Error accessing the camera', error);
+    alert('Error accessing the camera: ' + error.message);
+  }
+}
+
     
     // Stop the camera by stopping all media tracks and resetting the video element
     function stopCamera() {
@@ -141,8 +147,20 @@
     // Switch between front and rear camera
     switchCameraBtn.addEventListener('click', async () => {
       currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+
+      // Pause recording while switching camera
+      if (isRecording) {
+        mediaRecorder.pause();  // Pause the media recorder
+      }
+
+      // Stop current camera stream and switch to new camera
       stopCamera();
       await startCamera();
+
+      // Resume recording after switching camera
+      if (isRecording) {
+        mediaRecorder.resume();  // Resume the media recorder
+      }
     });
 
     // Upload to IPFS using Pinata
